@@ -951,23 +951,6 @@
       </aside>
       <main class="workspace">
         <div class="main-inner">
-          <section class="panel" aria-labelledby="allTasksTitle">
-            <div class="panel-head">
-              <h1 id="allTasksTitle"></h1>
-              <div class="context-note" id="visibleCount" aria-live="polite">
-                0 件表示
-              </div>
-            </div>
-            <div class="task-table" role="region" aria-label="タスク一覧">
-              <div class="table-head" aria-hidden="true">
-                <div>タスク</div>
-                <div>ステータス</div>
-                <div class="date-head">更新日時</div>
-                <div></div>
-              </div>
-              <div id="taskList"></div>
-            </div>
-          </section>
           <section class="panel new-panel" aria-labelledby="newTaskTitle">
             <h2 id="newTaskTitle"></h2>
             <form id="addForm" class="create-form">
@@ -986,6 +969,23 @@
               ></select>
               <button type="submit" class="primary-btn">＋ 追加する</button>
             </form>
+          </section>
+          <section class="panel" aria-labelledby="allTasksTitle">
+            <div class="panel-head">
+              <h1 id="allTasksTitle"></h1>
+              <div class="context-note" id="visibleCount" aria-live="polite">
+                0 件表示
+              </div>
+            </div>
+            <div class="task-table" role="region" aria-label="タスク一覧">
+              <div class="table-head" aria-hidden="true">
+                <div>タスク</div>
+                <div>ステータス</div>
+                <div class="date-head">更新日時</div>
+                <div></div>
+              </div>
+              <div id="taskList"></div>
+            </div>
           </section>
         </div>
       </main>
@@ -1888,4 +1888,3 @@
     </script>
   </body>
 </html>
-
