@@ -1,1 +1,1891 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <title>TODO | タスク管理</title>
+    <style>
+      :root {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN",
+          "Yu Gothic", Meiryo, sans-serif;
+        color: #111827;
+        background: #f7f9fc;
+        --line: #e3e8f0;
+        --ink: #151b2c;
+        --sub: #8390a6;
+        --shadow: 0 12px 36px rgba(24, 38, 68, 0.045);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-size: 14px;
+      }
+      button,
+      input,
+      select {
+        font: inherit;
+      }
+      button {
+        cursor: pointer;
+      }
+      button:disabled {
+        opacity: 0.42;
+        cursor: not-allowed;
+      }
+      button:focus-visible,
+      input:focus-visible,
+      select:focus-visible {
+        outline: 3px solid #9dabf9;
+        outline-offset: 2px;
+      }
+      .shell {
+        display: grid;
+        grid-template-columns: 302px minmax(0, 1fr);
+        min-height: 100vh;
+      }
+      .sidebar {
+        background: #0c0d10;
+        color: #f4f5f8;
+        padding: 20px 17px 18px;
+        position: sticky;
+        top: 0;
+        align-self: start;
+        height: 100vh;
+        overflow-y: auto;
+        scrollbar-color: #41434a #0c0d10;
+        scrollbar-width: thin;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 2px 10px 20px;
+      }
+      .brand-icon {
+        display: grid;
+        place-items: center;
+        background: linear-gradient(140deg, #8183f8, #484bd5);
+        box-shadow: 0 5px 15px #504ed440;
+        width: 42px;
+        height: 42px;
+        border-radius: 13px;
+        font-weight: 900;
+        font-size: 27px;
+      }
+      .brand-name {
+        font-size: 24px;
+        font-weight: 850;
+        letter-spacing: 0.035em;
+        line-height: 1.05;
+      }
+      .brand-sub {
+        color: #a4a8b7;
+        font-size: 11px;
+        margin-top: 5px;
+        letter-spacing: 0.05em;
+      }
+      .side-section {
+        padding: 12px 5px 15px;
+        border-top: 1px solid #35363e;
+      }
+      .side-section.first {
+        border-top: 0;
+        padding-top: 0;
+      }
+      .side-label {
+        color: #a5a8b6;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.045em;
+        margin: 0 0 9px 4px;
+      }
+      .side-buttons {
+        display: grid;
+        gap: 6px;
+      }
+      .side-btn {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        min-height: 38px;
+        border: 1px solid #444651;
+        background: linear-gradient(155deg, #282a30, #212329);
+        border-radius: 9px;
+        color: #f2f2f6;
+        text-align: left;
+        padding: 8px 12px;
+        font-size: 12px;
+        font-weight: 730;
+        transition:
+          background 0.13s,
+          border-color 0.13s;
+      }
+      .side-btn:hover:not(:disabled) {
+        background: #363942;
+        border-color: #666979;
+      }
+      .side-btn svg {
+        width: 17px;
+        height: 17px;
+        flex: none;
+        stroke-width: 1.9;
+      }
+      .side-btn.muted {
+        color: #d9dce6;
+      }
+      .side-two {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 7px;
+      }
+      .side-two .side-btn {
+        gap: 7px;
+        justify-content: center;
+        font-size: 11px;
+        padding: 8px 5px;
+      }
+      .filter-list {
+        display: grid;
+        gap: 2px;
+      }
+      .filter-item {
+        --dot: #98a6b9;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        border: 0;
+        color: #e0e1e7;
+        background: transparent;
+        text-align: left;
+        border-radius: 8px;
+        width: 100%;
+        height: 30px;
+        padding: 0 8px;
+        font-size: 12px;
+        font-weight: 750;
+      }
+      .filter-item:hover {
+        background: #252934;
+      }
+      .filter-item.active {
+        background: #26334f;
+        color: white;
+      }
+      .filter-check {
+        width: 15px;
+        height: 15px;
+        border: 1.5px solid #676b76;
+        border-radius: 4px;
+        color: transparent;
+        display: grid;
+        place-items: center;
+        font-size: 11px;
+        flex: none;
+        font-weight: 900;
+      }
+      .filter-item.active .filter-check {
+        background: #5b7ef4;
+        border-color: #5b7ef4;
+        color: white;
+      }
+      .filter-dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: var(--dot);
+        flex: none;
+      }
+      .filter-text {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .filter-count {
+        margin-left: auto;
+        color: #c7cbd6;
+        background: #303139;
+        min-width: 23px;
+        text-align: center;
+        border-radius: 15px;
+        padding: 2px 6px;
+        font-size: 10px;
+        font-variant-numeric: tabular-nums;
+      }
+      .filter-item.active .filter-count {
+        background: #425171;
+        color: white;
+      }
+      .sidebar-search {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: #23252b;
+        border: 1px solid #44464d;
+        border-radius: 9px;
+        padding: 0 11px;
+        height: 39px;
+      }
+      .sidebar-search svg {
+        width: 17px;
+        height: 17px;
+        color: #cbd0da;
+        flex: none;
+      }
+      .sidebar-search input {
+        width: 100%;
+        min-width: 0;
+        border: 0;
+        outline: none;
+        background: transparent;
+        color: white;
+        font-size: 12px;
+      }
+      .sidebar-search input::placeholder {
+        color: #858997;
+      }
+      .sidebar-stats {
+        border: 1px solid #42444a;
+        background: linear-gradient(140deg, #26282e, #1c1e23);
+        border-radius: 10px;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        padding: 10px 4px;
+      }
+      .sidebar-stat {
+        text-align: center;
+        min-width: 0;
+        border-right: 1px solid #3a3c44;
+      }
+      .sidebar-stat:last-child {
+        border: 0;
+      }
+      .sidebar-stat-label {
+        color: #b7bac4;
+        font-size: 10px;
+        white-space: nowrap;
+      }
+      .sidebar-stat-label::before {
+        content: "";
+        display: inline-block;
+        width: 6px;
+        height: 6px;
+        border-radius: 100%;
+        background: var(--stat-color, #9fa5b4);
+        vertical-align: 1px;
+        margin-right: 5px;
+      }
+      .sidebar-stat-number {
+        font-size: 17px;
+        font-weight: 850;
+        line-height: 1.4;
+        font-variant-numeric: tabular-nums;
+      }
+      .side-save {
+        border: 1px solid #343945;
+        border-radius: 10px;
+        background: #1c2028;
+        padding: 12px 11px;
+        display: grid;
+        gap: 7px;
+      }
+      .save-heading {
+        font-size: 12px;
+        font-weight: 760;
+        display: flex;
+        gap: 7px;
+        align-items: center;
+        line-height: 1.5;
+      }
+      .save-dot {
+        width: 8px;
+        height: 8px;
+        background: #f0c26b;
+        border-radius: 50%;
+        flex: none;
+      }
+      .side-save[data-state="saved"] .save-dot {
+        background: #50b989;
+      }
+      .side-save[data-state="saving"] .save-dot {
+        background: #6e9afa;
+      }
+      .side-save[data-state="error"] .save-dot {
+        background: #fb7a84;
+      }
+      .save-detail {
+        font-size: 10px;
+        line-height: 1.55;
+        color: #9da4b5;
+        overflow-wrap: anywhere;
+      }
+      .file-name {
+        color: #d4d9e5;
+        font-size: 10px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        border: 1px solid #3c414b;
+        background: #282c36;
+        padding: 6px 8px;
+        border-radius: 7px;
+      }
+      .save-action {
+        background: #3e54bf;
+        color: white;
+        border: 0;
+        border-radius: 7px;
+        min-height: 31px;
+        font-size: 11px;
+        font-weight: 800;
+      }
+      .save-action:hover {
+        background: #4d63d5;
+      }
+      .side-note {
+        color: #8f96a4;
+        font-size: 10px;
+        line-height: 1.7;
+        margin: 12px 8px 0;
+      }
+      .workspace {
+        min-width: 0;
+        padding: 62px clamp(20px, 3vw, 48px) 55px;
+        background: #fcfdff;
+      }
+      .main-inner {
+        max-width: 1470px;
+        margin: 0 auto;
+        display: grid;
+        gap: 36px;
+      }
+      .panel {
+        background: #fff;
+        border: 1px solid #dfe5ef;
+        box-shadow: var(--shadow);
+        border-radius: 19px;
+        padding: 24px 24px 27px;
+        min-width: 0;
+      }
+      h1,
+      h2 {
+        color: #111827;
+        font-size: clamp(23px, 2.45vw, 30px);
+        font-weight: 850;
+        letter-spacing: 0.03em;
+        line-height: 1.3;
+        margin: 0;
+      }
+      .panel-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        margin: 0 0 21px;
+      }
+      .context-note {
+        font-size: 11px;
+        color: #7e8a9e;
+        font-weight: 600;
+      }
+      .task-table {
+        border: 1px solid #dfe5ee;
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      .table-head,
+      .task-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 195px 141px 85px;
+        align-items: center;
+        column-gap: 15px;
+      }
+      .table-head {
+        background: #f0f2f7;
+        color: #43506b;
+        font-weight: 800;
+        font-size: 12px;
+        min-height: 42px;
+        padding: 0 17px 0 24px;
+      }
+      .task-row {
+        --st-fg: #64748b;
+        --st-bg: #f2f4f7;
+        --st-border: #dce2e8;
+        position: relative;
+        min-height: 54px;
+        padding: 6px 17px 6px 24px;
+        border-top: 1px solid #e5eaf1;
+        background: white;
+        transition: background 0.13s;
+      }
+      .task-row::before {
+        content: "";
+        position: absolute;
+        left: 4px;
+        top: 9px;
+        bottom: 9px;
+        width: 5px;
+        border-radius: 8px;
+        background: var(--st-fg);
+      }
+      .task-row:hover {
+        background: #fafbff;
+      }
+      .task-name {
+        font-size: 13px;
+        font-weight: 760;
+        line-height: 1.5;
+        overflow-wrap: anywhere;
+        min-width: 0;
+      }
+      .task-row[data-status="完了"] .task-name {
+        text-decoration: line-through;
+        color: #9aa4b4;
+      }
+      .status-select {
+        appearance: none;
+        -webkit-appearance: none;
+        border: 1px solid var(--st-border);
+        border-radius: 999px;
+        background-color: var(--st-bg);
+        color: var(--st-fg);
+        width: 100%;
+        min-height: 34px;
+        padding: 5px 28px 5px 13px;
+        font-size: 12px;
+        font-weight: 850;
+        cursor: pointer;
+        background-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="%23505967" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"%3E%3Cpath d="m6 9 6 6 6-6"/%3E%3C/svg%3E');
+        background-position: right 10px center;
+        background-repeat: no-repeat;
+      }
+      .status-select option {
+        background: #fff;
+        color: #101828;
+      }
+      .task-date {
+        font-size: 12px;
+        font-variant-numeric: tabular-nums;
+        color: #748198;
+        white-space: nowrap;
+      }
+      .row-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 2px;
+      }
+      .icon-btn {
+        background: transparent;
+        border: 0;
+        color: #8997af;
+        display: grid;
+        place-items: center;
+        border-radius: 7px;
+        padding: 7px;
+      }
+      .icon-btn:hover {
+        background: #edf1f9;
+        color: #3355ac;
+      }
+      .icon-btn.delete:hover {
+        color: #d94b59;
+        background: #fdf0f1;
+      }
+      .icon-btn svg {
+        width: 17px;
+        height: 17px;
+        stroke-width: 1.8;
+      }
+      .task-row[data-status="要返信"] {
+        --st-fg: #7652e2;
+        --st-bg: #f0ebff;
+        --st-border: #ddcffc;
+      }
+      .task-row[data-status="最優先"] {
+        --st-fg: #e43c4c;
+        --st-bg: #ffeded;
+        --st-border: #ffcccc;
+      }
+      .task-row[data-status="優先"] {
+        --st-fg: #ef7828;
+        --st-bg: #fff0e6;
+        --st-border: #ffd9bf;
+      }
+      .task-row[data-status="ボール投げる"] {
+        --st-fg: #c43d96;
+        --st-bg: #fbedf6;
+        --st-border: #f5d4e7;
+      }
+      .task-row[data-status="待ち"] {
+        --st-fg: #d3a411;
+        --st-bg: #fff9df;
+        --st-border: #f5e6aa;
+      }
+      .task-row[data-status="実施"] {
+        --st-fg: #26a06c;
+        --st-bg: #e4f6eb;
+        --st-border: #c7e9d5;
+      }
+      .task-row[data-status="待機"] {
+        --st-fg: #4d91c5;
+        --st-bg: #e9f4fb;
+        --st-border: #cde6f6;
+      }
+      .task-row[data-status="時間あれば"] {
+        --st-fg: #74879d;
+        --st-bg: #eef2f6;
+        --st-border: #d9e2ec;
+      }
+      .task-row[data-status="完了"] {
+        --st-fg: #98a0ad;
+        --st-bg: #f2f4f7;
+        --st-border: #e1e4e9;
+      }
+      .empty {
+        padding: 53px 18px;
+        text-align: center;
+        color: #8a96a9;
+        line-height: 1.9;
+        font-size: 12px;
+      }
+      .empty strong {
+        display: block;
+        color: #536176;
+        font-size: 14px;
+        margin-bottom: 5px;
+      }
+      .empty .tiny-link {
+        margin-top: 10px;
+        background: #f0f2fa;
+        color: #4556b1;
+        border: 1px solid #e0e5f2;
+        border-radius: 7px;
+        padding: 7px 11px;
+        font-size: 11px;
+        font-weight: 800;
+      }
+      .new-panel {
+        padding-bottom: 29px;
+      }
+      .new-panel h2 {
+        margin-bottom: 21px;
+      }
+      .create-form {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 196px 152px;
+        gap: 12px;
+      }
+      .field {
+        min-width: 0;
+        min-height: 49px;
+        border: 1px solid #d8deea;
+        background: #fff;
+        border-radius: 10px;
+        padding: 0 14px;
+        color: #121a2c;
+        font-size: 13px;
+        box-shadow: 0 2px 4px rgba(30, 50, 80, 0.035);
+      }
+      .field::placeholder {
+        color: #96a0b1;
+      }
+      select.field {
+        cursor: pointer;
+      }
+      .primary-btn {
+        min-height: 49px;
+        background: #4944dd;
+        border: 0;
+        color: white;
+        border-radius: 11px;
+        font-size: 13px;
+        font-weight: 850;
+        white-space: nowrap;
+        padding: 0 13px;
+      }
+      .primary-btn:hover {
+        background: #3d36c7;
+      }
+      .toast {
+        display: none;
+        position: fixed;
+        bottom: 22px;
+        right: 22px;
+        z-index: 20;
+        max-width: min(410px, calc(100vw - 40px));
+        padding: 13px 16px;
+        border-radius: 11px;
+        color: white;
+        background: #202a3b;
+        box-shadow: 0 12px 34px #101a2d40;
+        font-size: 12px;
+        line-height: 1.65;
+      }
+      .toast.show {
+        display: block;
+      }
+      dialog {
+        border: 1px solid #dfe4ed;
+        border-radius: 15px;
+        padding: 0;
+        width: min(450px, calc(100vw - 30px));
+        box-shadow: 0 20px 70px #101c3655;
+      }
+      dialog::backdrop {
+        background: #14192583;
+      }
+      .dialog-inner {
+        padding: 28px;
+      }
+      .dialog-inner h3 {
+        font-size: 20px;
+        margin: 0 0 22px;
+      }
+      .dialog-inner label {
+        display: block;
+        font-size: 12px;
+        font-weight: 750;
+        color: #637089;
+        margin: 0 0 7px;
+      }
+      .dialog-inner .field {
+        display: block;
+        width: 100%;
+        margin-bottom: 19px;
+      }
+      .dialog-actions {
+        display: flex;
+        gap: 9px;
+        justify-content: flex-end;
+      }
+      .light-btn {
+        background: white;
+        color: #303c52;
+        border: 1px solid #dbe0e9;
+        border-radius: 9px;
+        padding: 10px 16px;
+        font-weight: 700;
+      }
+      .dialog-actions .primary-btn {
+        min-height: 40px;
+        padding: 0 16px;
+      }
+      @media (max-width: 1200px) {
+        .shell {
+          grid-template-columns: 266px minmax(0, 1fr);
+        }
+        .sidebar {
+          padding-left: 12px;
+          padding-right: 12px;
+        }
+        .workspace {
+          padding: 30px 22px;
+        }
+        .panel {
+          padding: 23px 19px;
+        }
+        .table-head,
+        .task-row {
+          grid-template-columns: minmax(0, 1fr) 155px 106px 70px;
+          column-gap: 9px;
+        }
+        .create-form {
+          grid-template-columns: minmax(0, 1fr) 145px 120px;
+        }
+        .task-date {
+          font-size: 11px;
+        }
+      }
+      @media (max-width: 800px) {
+        .shell {
+          display: block;
+        }
+        .sidebar {
+          position: relative;
+          height: auto;
+          overflow: visible;
+          padding: 18px;
+        }
+        .brand {
+          padding-bottom: 16px;
+        }
+        .side-section {
+          padding: 11px 5px;
+        }
+        .workspace {
+          padding: 23px 13px 40px;
+        }
+        .main-inner {
+          gap: 19px;
+        }
+        .panel {
+          padding: 19px 13px;
+        }
+        .table-head,
+        .task-row {
+          grid-template-columns: minmax(0, 1fr) 132px 74px;
+          gap: 7px;
+        }
+        .table-head .date-head,
+        .task-date {
+          display: none;
+        }
+        .table-head {
+          padding: 0 9px 0 16px;
+        }
+        .task-row {
+          padding: 7px 9px 7px 16px;
+        }
+        .task-name {
+          font-size: 12px;
+        }
+        .status-select {
+          font-size: 11px;
+          padding-left: 9px;
+          padding-right: 20px;
+          background-position: right 3px center;
+        }
+        .row-actions {
+          gap: 0;
+        }
+        .icon-btn {
+          padding: 5px;
+        }
+        .create-form {
+          grid-template-columns: minmax(0, 1fr) 140px;
+        }
+        .create-form .primary-btn {
+          grid-column: 1/-1;
+        }
+      }
+      @media (max-width: 410px) {
+        .table-head,
+        .task-row {
+          grid-template-columns: minmax(0, 1fr) 114px 57px;
+          gap: 3px;
+        }
+        .status-select {
+          font-size: 10px;
+        }
+        .icon-btn svg {
+          width: 15px;
+          height: 15px;
+        }
+        .create-form {
+          grid-template-columns: 1fr;
+        }
+        .create-form .primary-btn {
+          grid-column: auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar" aria-label="操作メニュー">
+        <div class="brand">
+          <div class="brand-icon" aria-hidden="true">✓</div>
+          <div>
+            <div class="brand-name">tasks</div>
+            <div class="brand-sub">タスク管理アプリ</div>
+          </div>
+        </div>
+        <section class="side-section first" aria-labelledby="fileSectionTitle">
+          <h2 class="side-label" id="fileSectionTitle">ファイル（JSON）</h2>
+          <div class="side-buttons">
+            <button type="button" class="side-btn" id="openFileBtn">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v10H3z" /></svg
+              >JSONを開く
+            </button>
+            <button type="button" class="side-btn" id="newFileBtn">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M6 3h8l4 4v5M6 3v18h7M14 3v5h5M18 15v7M14.5 18.5h7"
+                /></svg
+              >新規JSONを作成
+            </button>
+            <button type="button" class="side-btn" id="reconnectBtn">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M20 11a8 8 0 1 0-2.2 6M20 4v7h-7" /></svg
+              >直前のファイルに再接続
+            </button>
+          </div>
+        </section>
+        <section class="side-section" aria-labelledby="backupSectionTitle">
+          <h2 class="side-label" id="backupSectionTitle">
+            バックアップ / 書き出し
+          </h2>
+          <div class="side-two">
+            <button
+              type="button"
+              class="side-btn"
+              id="backupBtn"
+              title="日時付きのJSONバックアップを保存"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M12 3v12m-5-5 5 5 5-5M4 17v4h16v-4" /></svg
+              >バックアップ
+            </button>
+            <button
+              type="button"
+              class="side-btn"
+              id="exportBtn"
+              title="タスク一覧をCSVファイルで書き出し"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M12 16V4m-4 4 4-4 4 4M5 13H3v8h18v-8h-2" /></svg
+              >CSV書き出し
+            </button>
+          </div>
+        </section>
+        <section class="side-section" aria-labelledby="filterSectionTitle">
+          <h2 class="side-label" id="filterSectionTitle">フィルター</h2>
+          <nav
+            class="filter-list"
+            id="sideNav"
+            aria-label="ステータス別フィルター"
+          ></nav>
+        </section>
+        <section class="side-section" aria-label="検索">
+          <label class="sidebar-search"
+            ><svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            >
+              <circle cx="10" cy="10" r="7" />
+              <path d="m16 16 5 5" /></svg
+            ><input
+              type="search"
+              id="searchInput"
+              placeholder="タスクを検索…"
+              aria-label="タスクを検索"
+          /></label>
+        </section>
+        <section class="side-section" aria-labelledby="summaryTitle">
+          <h2 class="side-label" id="summaryTitle">ステータスサマリー</h2>
+          <div class="sidebar-stats" aria-label="タスク件数">
+            <div class="sidebar-stat">
+              <div class="sidebar-stat-label" style="--stat-color: #8390a0">
+                全体
+              </div>
+              <div class="sidebar-stat-number" id="allCount">0</div>
+            </div>
+            <div class="sidebar-stat">
+              <div class="sidebar-stat-label" style="--stat-color: #8180f3">
+                要対応
+              </div>
+              <div class="sidebar-stat-number" id="urgentCount">0</div>
+            </div>
+            <div class="sidebar-stat">
+              <div class="sidebar-stat-label" style="--stat-color: #5cc498">
+                完了
+              </div>
+              <div class="sidebar-stat-number" id="doneCount">0</div>
+            </div>
+          </div>
+        </section>
+        <section class="side-section" aria-label="ローカルJSONの保存状態">
+          <div
+            class="side-save"
+            id="statusCard"
+            data-state="unlinked"
+            role="status"
+            aria-live="polite"
+          >
+            <div class="save-heading">
+              <span class="save-dot"></span
+              ><span id="saveStatus">JSON未接続</span>
+            </div>
+            <div class="save-detail" id="saveDetail">
+              データの保存先を選んでください。
+            </div>
+            <div class="file-name" id="fileChip">ファイル未選択</div>
+            <button type="button" class="save-action" id="saveBtn">
+              保存先を作成
+            </button>
+          </div>
+          <p class="side-note">
+            タスクはPC内のJSONに保存します。バックアップは別の場所にも保管してください。
+          </p>
+        </section>
+      </aside>
+      <main class="workspace">
+        <div class="main-inner">
+          <section class="panel" aria-labelledby="allTasksTitle">
+            <div class="panel-head">
+              <h1 id="allTasksTitle"></h1>
+              <div class="context-note" id="visibleCount" aria-live="polite">
+                0 件表示
+              </div>
+            </div>
+            <div class="task-table" role="region" aria-label="タスク一覧">
+              <div class="table-head" aria-hidden="true">
+                <div>タスク</div>
+                <div>ステータス</div>
+                <div class="date-head">更新日時</div>
+                <div></div>
+              </div>
+              <div id="taskList"></div>
+            </div>
+          </section>
+          <section class="panel new-panel" aria-labelledby="newTaskTitle">
+            <h2 id="newTaskTitle"></h2>
+            <form id="addForm" class="create-form">
+              <input
+                id="newTitle"
+                class="field"
+                maxlength="500"
+                placeholder="タスクの内容を入力…"
+                aria-label="新しいタスク名"
+                required
+              />
+              <select
+                id="newStatus"
+                class="field"
+                aria-label="新しいタスクのステータス"
+              ></select>
+              <button type="submit" class="primary-btn">＋ 追加する</button>
+            </form>
+          </section>
+        </div>
+      </main>
+    </div>
+    <dialog id="editDialog" aria-labelledby="dialogTitle">
+      <form class="dialog-inner" id="editForm">
+        <h3 id="dialogTitle">タスクを編集</h3>
+        <label for="editTitle">タスク名</label
+        ><input class="field" id="editTitle" maxlength="500" required />
+        <label for="editStatus">ステータス</label
+        ><select class="field" id="editStatus"></select>
+        <div class="dialog-actions">
+          <button type="button" class="light-btn" id="cancelEditBtn">
+            キャンセル</button
+          ><button type="submit" class="primary-btn">変更を保存</button>
+        </div>
+      </form>
+    </dialog>
+    <div class="toast" id="toast" role="alert"></div>
+    <script>
+      "use strict";
+      (() => {
+        // この順番が一覧の並べ替え順になります。
+        const STATUSES = [
+          { name: "要返信", color: "#835ce4" },
+          { name: "最優先", color: "#e43c4c" },
+          { name: "優先", color: "#ef7828" },
+          { name: "ボール投げる", color: "#c43d96" },
+          { name: "待ち", color: "#d3a411" },
+          { name: "実施", color: "#26a06c" },
+          { name: "待機", color: "#4d91c5" },
+          { name: "時間あれば", color: "#74879d" },
+          { name: "完了", color: "#98a0ad" },
+        ];
+        const STATUS_NAMES = STATUSES.map((s) => s.name);
+        const PRIORITIES = new Set(["要返信", "最優先", "優先"]);
+        const DB_NAME = "todo-file-link-v1",
+          DB_STORE = "settings",
+          FILE_KEY = "jsonFileHandle";
+        const $ = (id) => document.getElementById(id);
+        let tasks = [],
+          currentFilter = "all",
+          searchText = "",
+          activeHandle = null,
+          rememberedHandle = null,
+          fileName = "";
+        let lastDiskSignature = null,
+          writableGranted = false,
+          revision = 0,
+          savedRevision = 0,
+          timer = null;
+        let savingPromise = null,
+          failure = "",
+          isConnecting = false,
+          isBooting = true,
+          editId = null,
+          toastTimer = null;
+
+        function uniqueId() {
+          return (
+            globalThis.crypto?.randomUUID?.() ||
+            `id-${Date.now()}-${Math.random().toString(36).slice(2)}`
+          );
+        }
+        function nowISO() {
+          return new Date().toISOString();
+        }
+        function normalizeStatus(v) {
+          return v === "返信" ? "要返信" : v;
+        }
+        function sortTasks(a, b) {
+          const p =
+            STATUS_NAMES.indexOf(a.status) - STATUS_NAMES.indexOf(b.status);
+          return (
+            p ||
+            a.title.localeCompare(b.title, "ja") ||
+            a.id.localeCompare(b.id)
+          );
+        }
+        function makePayload() {
+          return {
+            format: "personal-todo",
+            version: 1,
+            exportedAt: nowISO(),
+            tasks: tasks.map((t) => ({ ...t })),
+          };
+        }
+        function decodeJSON(raw) {
+          let parsed;
+          try {
+            parsed = JSON.parse(raw);
+          } catch {
+            throw Error(
+              "JSONの構文が正しくありません。ファイルは変更していません。",
+            );
+          }
+          const input = Array.isArray(parsed) ? parsed : parsed && parsed.tasks;
+          if (!Array.isArray(input))
+            throw Error(
+              "JSONにtasks配列がありません。ファイルは変更していません。",
+            );
+          if (input.length > 30000) throw Error("タスク件数が多すぎます。");
+          const ids = new Set();
+          return input.map((t, i) => {
+            if (
+              !t ||
+              typeof t !== "object" ||
+              typeof t.title !== "string" ||
+              !t.title.trim() ||
+              t.title.length > 500 ||
+              typeof t.status !== "string"
+            )
+              throw Error(
+                `${i + 1}件目のタスク形式が正しくありません。ファイルは変更していません。`,
+              );
+            const status = normalizeStatus(t.status);
+            if (!STATUS_NAMES.includes(status))
+              throw Error(
+                `${i + 1}件目に未対応のステータス「${t.status.slice(0, 50)}」があります。ファイルは変更していません。`,
+              );
+            const id = typeof t.id === "string" && t.id ? t.id : uniqueId();
+            if (ids.has(id))
+              throw Error(
+                "重複したタスクIDがあります。ファイルは変更していません。",
+              );
+            ids.add(id);
+            return {
+              id,
+              title: t.title.trim(),
+              status,
+              createdAt:
+                typeof t.createdAt === "string" ? t.createdAt : nowISO(),
+              updatedAt:
+                typeof t.updatedAt === "string" ? t.updatedAt : nowISO(),
+            };
+          });
+        }
+        function toast(message) {
+          const el = $("toast");
+          el.textContent = message;
+          el.classList.add("show");
+          clearTimeout(toastTimer);
+          toastTimer = setTimeout(() => el.classList.remove("show"), 4400);
+        }
+        function iconSVG(kind) {
+          const el = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "svg",
+          );
+          for (const [key, val] of Object.entries({
+            viewBox: "0 0 24 24",
+            fill: "none",
+            stroke: "currentColor",
+            "stroke-linecap": "round",
+            "stroke-linejoin": "round",
+          }))
+            el.setAttribute(key, val);
+          const paths =
+            kind === "edit"
+              ? [
+                  "M12 20h9",
+                  "M16.5 3.5a2.12 2.12 0 0 1 3 3L9 17l-4 1 1-4 10.5-10.5z",
+                ]
+              : [
+                  "M3 6h18",
+                  "M8 6V4h8v2",
+                  "M19 6l-1 14H6L5 6",
+                  "M10 10v7",
+                  "M14 10v7",
+                ];
+          for (const d of paths) {
+            const p = document.createElementNS(
+              "http://www.w3.org/2000/svg",
+              "path",
+            );
+            p.setAttribute("d", d);
+            el.append(p);
+          }
+          return el;
+        }
+        function statusOptions(select, selected) {
+          select.replaceChildren();
+          for (const s of STATUSES) {
+            const opt = document.createElement("option");
+            opt.value = s.name;
+            opt.textContent = s.name;
+            select.append(opt);
+          }
+          select.value = selected;
+        }
+        function displayDate(value) {
+          const d = new Date(value);
+          return Number.isNaN(d.getTime())
+            ? "日付なし"
+            : `${d.toLocaleDateString("ja-JP", { month: "2-digit", day: "2-digit" })} ${d.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit", hour12: false })}`;
+        }
+        function renderNav() {
+          const nav = $("sideNav");
+          nav.replaceChildren();
+          for (const o of [
+            { name: "すべてのタスク", value: "all", color: "#768bf5" },
+            ...STATUSES.map((s) => ({
+              name: s.name,
+              value: s.name,
+              color: s.color,
+            })),
+          ]) {
+            const b = document.createElement("button");
+            b.type = "button";
+            b.className = `filter-item${currentFilter === o.value ? " active" : ""}`;
+            b.style.setProperty("--dot", o.color);
+            b.setAttribute("aria-pressed", String(currentFilter === o.value));
+            const check = document.createElement("span");
+            check.className = "filter-check";
+            check.textContent = "✓";
+            const dot = document.createElement("span");
+            dot.className = "filter-dot";
+            if (o.value === "all") dot.style.display = "none";
+            const label = document.createElement("span");
+            label.className = "filter-text";
+            label.textContent = o.name;
+            const count = document.createElement("span");
+            count.className = "filter-count";
+            count.textContent =
+              o.value === "all"
+                ? tasks.length
+                : tasks.filter((t) => t.status === o.value).length;
+            b.append(check, dot, label, count);
+            b.addEventListener("click", () => {
+              currentFilter = o.value;
+              render();
+            });
+            nav.append(b);
+          }
+        }
+        function renderTasks() {
+          const filtered = tasks
+            .filter(
+              (t) =>
+                (currentFilter === "all" || t.status === currentFilter) &&
+                (!searchText ||
+                  t.title.toLocaleLowerCase("ja").includes(searchText)),
+            )
+            .sort(sortTasks);
+          $("visibleCount").textContent =
+            currentFilter === "all" && !searchText
+              ? `${filtered.length} 件表示`
+              : `${filtered.length} 件表示 / 絞り込み中`;
+          const list = $("taskList");
+          list.replaceChildren();
+          if (!filtered.length) {
+            const empty = document.createElement("div");
+            empty.className = "empty";
+            const title = document.createElement("strong");
+            title.textContent = tasks.length
+              ? "該当するタスクはありません"
+              : "タスクはまだありません";
+            const desc = document.createElement("div");
+            desc.textContent = tasks.length
+              ? "左側のフィルターや検索条件を変更してください。"
+              : "下の「新しいタスク」から追加できます。";
+            empty.append(title, desc);
+            if (!tasks.length) {
+              const b = document.createElement("button");
+              b.type = "button";
+              b.className = "tiny-link";
+              b.textContent = "サンプルのタスクを表示";
+              b.addEventListener("click", addDemo);
+              empty.append(b);
+            }
+            list.append(empty);
+            return;
+          }
+          for (const task of filtered) {
+            const row = document.createElement("article");
+            row.className = "task-row";
+            row.dataset.status = task.status;
+            const name = document.createElement("div");
+            name.className = "task-name";
+            name.textContent = task.title;
+            const select = document.createElement("select");
+            select.className = "status-select";
+            select.setAttribute("aria-label", `${task.title} のステータス`);
+            statusOptions(select, task.status);
+            select.addEventListener("change", () => {
+              if (isBooting || isConnecting) return;
+              task.status = select.value;
+              task.updatedAt = nowISO();
+              markDirty();
+              render();
+            });
+            const date = document.createElement("time");
+            date.className = "task-date";
+            date.textContent = displayDate(task.updatedAt);
+            date.dateTime = task.updatedAt;
+            const actions = document.createElement("div");
+            actions.className = "row-actions";
+            const edit = document.createElement("button");
+            edit.type = "button";
+            edit.className = "icon-btn";
+            edit.title = "編集";
+            edit.setAttribute("aria-label", `${task.title} を編集`);
+            edit.append(iconSVG("edit"));
+            edit.addEventListener("click", () => openEdit(task.id));
+            const del = document.createElement("button");
+            del.type = "button";
+            del.className = "icon-btn delete";
+            del.title = "削除";
+            del.setAttribute("aria-label", `${task.title} を削除`);
+            del.append(iconSVG("delete"));
+            del.addEventListener("click", () => {
+              if (isBooting || isConnecting) return;
+              if (!confirm(`「${task.title}」を削除しますか？`)) return;
+              tasks = tasks.filter((t) => t.id !== task.id);
+              markDirty();
+              render();
+            });
+            actions.append(edit, del);
+            row.append(name, select, date, actions);
+            list.append(row);
+          }
+        }
+        function render() {
+          $("allCount").textContent = tasks.length;
+          $("urgentCount").textContent = tasks.filter((t) =>
+            PRIORITIES.has(t.status),
+          ).length;
+          $("doneCount").textContent = tasks.filter(
+            (t) => t.status === "完了",
+          ).length;
+          $("newTitle").disabled = isBooting || isConnecting;
+          $("newStatus").disabled = isBooting || isConnecting;
+          $("addForm").querySelector('button[type="submit"]').disabled =
+            isBooting || isConnecting;
+          renderNav();
+          renderTasks();
+          renderSaveState();
+        }
+        function renderSaveState() {
+          const card = $("statusCard"),
+            title = $("saveStatus"),
+            detail = $("saveDetail"),
+            chip = $("fileChip"),
+            btn = $("saveBtn");
+          chip.textContent =
+            fileName || rememberedHandle?.name || "ファイル未選択";
+          if (isBooting || isConnecting) {
+            card.dataset.state = "saving";
+            title.textContent = "接続状態を確認中";
+            detail.textContent = "ローカルJSONの状態を確認しています。";
+            btn.textContent = "確認中";
+          } else if (failure) {
+            card.dataset.state = "error";
+            title.textContent = "保存・読み込みエラー";
+            detail.textContent = failure;
+            btn.textContent = activeHandle ? "再試行／許可" : "JSONを選択";
+          } else if (activeHandle && savingPromise) {
+            card.dataset.state = "saving";
+            title.textContent = "JSONへ保存中";
+            detail.textContent = "保存完了までページを閉じないでください。";
+            btn.textContent = "保存中";
+          } else if (activeHandle && !writableGranted) {
+            card.dataset.state = "unlinked";
+            title.textContent = "書き込み許可が必要";
+            detail.textContent = "「許可して保存」を押してください。";
+            btn.textContent = "許可して保存";
+          } else if (activeHandle && revision !== savedRevision) {
+            card.dataset.state = "saving";
+            title.textContent = "自動保存待ち";
+            detail.textContent = "変更をPC内のJSONに保存します。";
+            btn.textContent = "今すぐ保存";
+          } else if (activeHandle) {
+            card.dataset.state = "saved";
+            title.textContent = "JSONに保存済み";
+            detail.textContent = "変更時に自動保存します。";
+            btn.textContent = "今すぐ保存";
+          } else if (rememberedHandle) {
+            card.dataset.state = "unlinked";
+            title.textContent = "再接続が必要";
+            detail.textContent = "以前のJSONへのアクセス許可が必要です。";
+            btn.textContent = "再接続";
+          } else {
+            card.dataset.state = "unlinked";
+            title.textContent = "JSON未接続";
+            detail.textContent = "変更はまだファイルに保存されません。";
+            btn.textContent = "保存先を作成";
+          }
+          btn.disabled = isBooting || isConnecting || !!savingPromise;
+        }
+        function markDirty() {
+          revision++;
+          failure = "";
+          renderSaveState();
+          if (activeHandle) {
+            clearTimeout(timer);
+            timer = setTimeout(() => {
+              void persist();
+            }, 450);
+          }
+        }
+        function signature(file) {
+          return `${file.lastModified}:${file.size}`;
+        }
+        async function persist() {
+          clearTimeout(timer);
+          if (!activeHandle) return false;
+          if (savingPromise) return savingPromise;
+          const handle = activeHandle;
+          savingPromise = (async () => {
+            while (savedRevision < revision) {
+              const target = revision,
+                data = JSON.stringify(makePayload(), null, 2) + "\n";
+              if (typeof handle.queryPermission === "function") {
+                const permission = await handle.queryPermission({
+                  mode: "readwrite",
+                });
+                if (permission !== "granted") {
+                  writableGranted = false;
+                  throw Error(
+                    "JSONへの書き込み許可が必要です。サイドバーの「再試行／許可」を押してください。",
+                  );
+                }
+                writableGranted = true;
+              }
+              const existing = await handle.getFile();
+              if (
+                lastDiskSignature !== null &&
+                signature(existing) !== lastDiskSignature
+              )
+                throw Error(
+                  "JSONが別の操作で更新されています。上書きを防ぐため保存を中止しました。画面の内容をバックアップし、ファイルを開き直してください。",
+                );
+              const writable = await handle.createWritable();
+              try {
+                await writable.write(data);
+                await writable.close();
+              } catch (e) {
+                try {
+                  await writable.abort();
+                } catch {}
+                throw e;
+              }
+              const updated = await handle.getFile();
+              lastDiskSignature = signature(updated);
+              savedRevision = target;
+            }
+            failure = "";
+            return true;
+          })();
+          renderSaveState();
+          try {
+            return await savingPromise;
+          } catch (e) {
+            failure = e.message || String(e);
+            toast(failure);
+            return false;
+          } finally {
+            savingPromise = null;
+            renderSaveState();
+          }
+        }
+        async function getDB() {
+          return new Promise((resolve, reject) => {
+            if (!("indexedDB" in window)) {
+              reject(Error("IndexedDB非対応"));
+              return;
+            }
+            const req = indexedDB.open(DB_NAME, 1);
+            req.onupgradeneeded = () => {
+              if (!req.result.objectStoreNames.contains(DB_STORE))
+                req.result.createObjectStore(DB_STORE);
+            };
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => reject(req.error);
+          });
+        }
+        async function idbGet(key) {
+          const db = await getDB();
+          return new Promise((resolve, reject) => {
+            const tx = db.transaction(DB_STORE, "readonly"),
+              r = tx.objectStore(DB_STORE).get(key);
+            r.onsuccess = () => resolve(r.result);
+            r.onerror = () => reject(r.error);
+            tx.oncomplete = () => db.close();
+            tx.onerror = () => db.close();
+          });
+        }
+        async function idbSet(key, value) {
+          const db = await getDB();
+          return new Promise((resolve, reject) => {
+            const tx = db.transaction(DB_STORE, "readwrite");
+            tx.objectStore(DB_STORE).put(value, key);
+            tx.oncomplete = () => {
+              db.close();
+              resolve();
+            };
+            tx.onerror = () => {
+              db.close();
+              reject(tx.error);
+            };
+          });
+        }
+        async function idbRemember(handle) {
+          try {
+            await idbSet(FILE_KEY, handle);
+          } catch {
+            toast(
+              "接続情報を記憶できませんでした。次回はJSONを選び直してください。",
+            );
+          }
+        }
+        function hasUnsaved() {
+          return revision !== savedRevision;
+        }
+        function okayToReplace() {
+          return (
+            !hasUnsaved() ||
+            confirm(
+              "保存されていない変更があります。切り替えると画面上の変更が失われます。続行しますか？",
+            )
+          );
+        }
+        async function readHandle(handle) {
+          const file = await handle.getFile();
+          if (file.size > 10_000_000)
+            throw Error("ファイルが10MBを超えています。");
+          return {
+            newTasks: decodeJSON(await file.text()),
+            signature: signature(file),
+          };
+        }
+        function activateHandle(handle, loaded, canWrite = true) {
+          clearTimeout(timer);
+          activeHandle = handle;
+          rememberedHandle = handle;
+          fileName = handle.name;
+          writableGranted = canWrite;
+          tasks = loaded.newTasks;
+          lastDiskSignature = loaded.signature;
+          revision = 0;
+          savedRevision = 0;
+          failure = "";
+          currentFilter = "all";
+          searchText = "";
+          $("searchInput").value = "";
+          render();
+          void idbRemember(handle);
+        }
+        function busy() {
+          if (isBooting || isConnecting || savingPromise) {
+            toast("ファイルの確認・保存が終わってから操作してください。");
+            return true;
+          }
+          return false;
+        }
+        async function openExisting() {
+          if (busy()) return;
+          if (!window.showOpenFilePicker) {
+            toast("直接保存にはデスクトップ版Chrome / Edgeをご利用ください。");
+            return;
+          }
+          if (!okayToReplace()) return;
+          try {
+            const [handle] = await window.showOpenFilePicker({
+              types: [
+                {
+                  description: "JSONファイル",
+                  accept: { "application/json": [".json"] },
+                },
+              ],
+              multiple: false,
+            });
+            isConnecting = true;
+            renderSaveState();
+            const loaded = await readHandle(handle);
+            let canWrite = true;
+            if (typeof handle.queryPermission === "function") {
+              canWrite =
+                (await handle.queryPermission({ mode: "readwrite" })) ===
+                "granted";
+              if (!canWrite && typeof handle.requestPermission === "function") {
+                try {
+                  canWrite =
+                    (await handle.requestPermission({ mode: "readwrite" })) ===
+                    "granted";
+                } catch {}
+              }
+            }
+            activateHandle(handle, loaded, canWrite);
+            toast(`「${handle.name}」を読み込みました。`);
+          } catch (e) {
+            if (e.name !== "AbortError") {
+              failure = e.message || String(e);
+              toast(failure);
+            }
+          } finally {
+            isConnecting = false;
+            render();
+          }
+        }
+        async function createNew() {
+          if (busy()) return;
+          if (!window.showSaveFilePicker) {
+            toast("直接保存にはデスクトップ版Chrome / Edgeをご利用ください。");
+            return;
+          }
+          if (!okayToReplace()) return;
+          try {
+            const handle = await window.showSaveFilePicker({
+              suggestedName: "todo.json",
+              types: [
+                {
+                  description: "JSONファイル",
+                  accept: { "application/json": [".json"] },
+                },
+              ],
+            });
+            isConnecting = true;
+            renderSaveState();
+            const content = JSON.stringify(makePayload(), null, 2) + "\n",
+              writable = await handle.createWritable();
+            try {
+              await writable.write(content);
+              await writable.close();
+            } catch (e) {
+              try {
+                await writable.abort();
+              } catch {}
+              throw e;
+            }
+            const file = await handle.getFile();
+            activeHandle = handle;
+            rememberedHandle = handle;
+            fileName = handle.name;
+            lastDiskSignature = signature(file);
+            writableGranted = true;
+            savedRevision = revision;
+            failure = "";
+            void idbRemember(handle);
+            toast(`「${handle.name}」に保存しました。`);
+          } catch (e) {
+            if (e.name !== "AbortError") {
+              failure = e.message || String(e);
+              toast(failure);
+            }
+          } finally {
+            isConnecting = false;
+            render();
+          }
+        }
+        async function reconnect() {
+          if (busy()) return;
+          if (!rememberedHandle) {
+            await openExisting();
+            return;
+          }
+          if (!okayToReplace()) return;
+          try {
+            const handle = rememberedHandle;
+            isConnecting = true;
+            renderSaveState();
+            if (typeof handle.queryPermission === "function") {
+              let permission = await handle.queryPermission({
+                mode: "readwrite",
+              });
+              if (
+                permission !== "granted" &&
+                typeof handle.requestPermission === "function"
+              )
+                permission = await handle.requestPermission({
+                  mode: "readwrite",
+                });
+              if (permission !== "granted")
+                throw Error(
+                  "JSONへのアクセス許可がありません。「JSONを開く」から選び直せます。",
+                );
+            }
+            const loaded = await readHandle(handle);
+            activateHandle(handle, loaded);
+            toast("JSONに再接続しました。");
+          } catch (e) {
+            if (e.name !== "AbortError") {
+              failure = e.message || String(e);
+              toast(failure);
+            }
+          } finally {
+            isConnecting = false;
+            render();
+          }
+        }
+        async function saveNow() {
+          if (isBooting || isConnecting) return;
+          if (!activeHandle) {
+            if (rememberedHandle) await reconnect();
+            else await createNew();
+            return;
+          }
+          try {
+            if (typeof activeHandle.queryPermission === "function") {
+              let permission = await activeHandle.queryPermission({
+                mode: "readwrite",
+              });
+              if (
+                permission !== "granted" &&
+                typeof activeHandle.requestPermission === "function"
+              )
+                permission = await activeHandle.requestPermission({
+                  mode: "readwrite",
+                });
+              if (permission !== "granted")
+                throw Error("JSONへの書き込みが許可されませんでした。");
+              writableGranted = true;
+            }
+            failure = "";
+            renderSaveState();
+            if (hasUnsaved()) {
+              if (await persist()) toast("JSONに保存しました。");
+            } else toast("変更はすべて保存済みです。");
+          } catch (e) {
+            failure = e.message || String(e);
+            renderSaveState();
+            toast(failure);
+          }
+        }
+        function downloadFile(content, mime, filename) {
+          const blob = new Blob([content], { type: mime });
+          const url = URL.createObjectURL(blob),
+            a = document.createElement("a");
+          a.href = url;
+          a.download = filename;
+          document.body.append(a);
+          a.click();
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 2500);
+        }
+        function backup() {
+          const d = new Date(),
+            stamp =
+              [
+                d.getFullYear(),
+                String(d.getMonth() + 1).padStart(2, "0"),
+                String(d.getDate()).padStart(2, "0"),
+              ].join("") +
+              "-" +
+              [d.getHours(), d.getMinutes(), d.getSeconds()]
+                .map((n) => String(n).padStart(2, "0"))
+                .join("");
+          downloadFile(
+            JSON.stringify(makePayload(), null, 2) + "\n",
+            "application/json;charset=utf-8",
+            `todo-backup-${stamp}.json`,
+          );
+          toast("現在のタスクをJSONでバックアップしました。");
+        }
+        function exportCSV() {
+          // Excelなどで開いたときの数式実行を防ぐため、危険な先頭文字をエスケープします。
+          const csvCell = (v) => {
+            let s = String(v ?? "");
+            if (/^[\s]*[=+\-@\t\r]/.test(s)) s = "'" + s;
+            return '"' + s.replaceAll('"', '""') + '"';
+          };
+          const rows = [
+            ["タスク", "ステータス", "作成日時", "更新日時"],
+            ...[...tasks]
+              .sort(sortTasks)
+              .map((t) => [t.title, t.status, t.createdAt, t.updatedAt]),
+          ];
+          downloadFile(
+            "\uFEFF" +
+              rows.map((r) => r.map(csvCell).join(",")).join("\r\n") +
+              "\r\n",
+            "text/csv;charset=utf-8",
+            "todo-export.csv",
+          );
+          toast("CSVを書き出しました。");
+        }
+        function addDemo() {
+          if (isBooting || isConnecting) return;
+          const examples = [
+            ["取引先に返信する", "要返信"],
+            ["資料の最終確認", "最優先"],
+            ["月次レポートをまとめる", "優先"],
+            ["依頼内容を共有する", "ボール投げる"],
+            ["先方からの回答を待つ", "待ち"],
+            ["備品を発注する", "実施"],
+            ["来月の計画を考える", "時間あれば"],
+          ];
+          for (const [title, status] of examples)
+            tasks.push({
+              id: uniqueId(),
+              title,
+              status,
+              createdAt: nowISO(),
+              updatedAt: nowISO(),
+            });
+          markDirty();
+          render();
+          toast(
+            activeHandle
+              ? "サンプルタスクを追加しました。"
+              : "サンプルを表示しました。JSON未接続のため、まだ保存されていません。",
+          );
+        }
+        function openEdit(id) {
+          if (isBooting || isConnecting) return;
+          const task = tasks.find((t) => t.id === id);
+          if (!task) return;
+          editId = id;
+          $("editTitle").value = task.title;
+          statusOptions($("editStatus"), task.status);
+          $("editDialog").showModal();
+          $("editTitle").focus();
+        }
+        $("addForm").addEventListener("submit", (e) => {
+          e.preventDefault();
+          if (isBooting || isConnecting) return;
+          const title = $("newTitle").value.trim(),
+            status = $("newStatus").value;
+          if (!title) return;
+          tasks.push({
+            id: uniqueId(),
+            title,
+            status,
+            createdAt: nowISO(),
+            updatedAt: nowISO(),
+          });
+          $("newTitle").value = "";
+          markDirty();
+          render();
+          $("newTitle").focus();
+        });
+        $("searchInput").addEventListener("input", (e) => {
+          searchText = e.target.value.trim().toLocaleLowerCase("ja");
+          renderTasks();
+        });
+        $("editForm").addEventListener("submit", (e) => {
+          e.preventDefault();
+          const task = tasks.find((t) => t.id === editId);
+          if (!task) return;
+          const title = $("editTitle").value.trim();
+          if (!title) return;
+          if (title !== task.title || task.status !== $("editStatus").value) {
+            task.title = title;
+            task.status = $("editStatus").value;
+            task.updatedAt = nowISO();
+            markDirty();
+          }
+          $("editDialog").close();
+          render();
+        });
+        $("cancelEditBtn").addEventListener("click", () =>
+          $("editDialog").close(),
+        );
+        $("openFileBtn").addEventListener("click", openExisting);
+        $("newFileBtn").addEventListener("click", createNew);
+        $("reconnectBtn").addEventListener("click", reconnect);
+        $("saveBtn").addEventListener("click", saveNow);
+        $("backupBtn").addEventListener("click", backup);
+        $("exportBtn").addEventListener("click", exportCSV);
+        window.addEventListener("beforeunload", (e) => {
+          if (hasUnsaved()) {
+            e.preventDefault();
+            e.returnValue = "";
+          }
+        });
+        document.addEventListener("visibilitychange", () => {
+          if (
+            document.visibilityState === "hidden" &&
+            activeHandle &&
+            hasUnsaved()
+          )
+            void persist();
+        });
+        statusOptions($("newStatus"), "優先");
+        render();
+        (async () => {
+          try {
+            const handle = await idbGet(FILE_KEY);
+            if (handle) {
+              rememberedHandle = handle;
+              if (
+                typeof handle.queryPermission === "function" &&
+                (await handle.queryPermission({ mode: "readwrite" })) ===
+                  "granted"
+              ) {
+                const loaded = await readHandle(handle);
+                activateHandle(handle, loaded);
+              }
+            }
+          } catch (e) {
+            if (rememberedHandle)
+              failure =
+                "以前のJSONを自動読み込みできませんでした。「JSONを開く」から選び直してください。";
+          } finally {
+            isBooting = false;
+            render();
+          }
+        })();
+      })();
+    </script>
+  </body>
+</html>
 
